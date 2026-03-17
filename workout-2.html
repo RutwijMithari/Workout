@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>6-Day Workout Plan</title>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Oswald', sans-serif; min-height: 100vh; }
+    body.dark  { background: #080808; color: #fff; }
+    body.light { background: #f2f2ef; color: #111; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+    .day-btn { transition: all 0.2s; cursor: pointer; border: none; font-family: 'Oswald', sans-serif; }
+    .day-btn:hover { transform: translateY(-2px); }
+    .ex-card  { transition: box-shadow 0.25s, transform 0.25s; cursor: pointer; }
+    .ex-card:hover { transform: translateX(4px); }
+
+    /* ── Slide viewport ── */
+    #slide-viewport {
+      position: relative;
+      overflow: hidden;
+      /* height is set by JS to match content panel */
+    }
+    .slide-panel {
+      width: 100%;
+    }
+    /* incoming / outgoing states */
+    .panel-enter-left  { animation: enterLeft  0.38s cubic-bezier(0.4,0,0.2,1) forwards; }
+    .panel-enter-right { animation: enterRight 0.38s cubic-bezier(0.4,0,0.2,1) forwards; }
+    .panel-exit-left   { position: absolute; top:0; left:0; width:100%;
+                         animation: exitLeft   0.38s cubic-bezier(0.4,0,0.2,1) forwards; }
+    .panel-exit-right  { position: absolute; top:0; left:0; width:100%;
+                         animation: exitRight  0.38s cubic-bezier(0.4,0,0.2,1) forwards; }
+
+    @keyframes enterLeft  { from { transform: translateX( 100%); opacity:0.4; } to { transform: translateX(0);     opacity:1; } }
+    @keyframes enterRight { from { transform: translateX(-100%); opacity:0.4; } to { transform: translateX(0);     opacity:1; } }
+    @keyframes exitLeft   { from { transform: translateX(0);     opacity:1;   } to { transform: translateX(-100%); opacity:0; } }
+    @keyframes exitRight  { from { transform: translateX(0);     opacity:1;   } to { transform: translateX( 100%); opacity:0; } }
+
+    /* ── Dots ── */
+    .dot { transition: width 0.35s ease, background 0.35s ease, box-shadow 0.35s ease; cursor: pointer; height: 6px; border-radius: 3px; }
+
+    /* ── Theme pill toggle ── */
+    .theme-pill {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 10px; border-radius: 20px; border: none; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+      transition: background 0.3s, color 0.3s;
+    }
+    body.dark  .theme-pill { background: #1e1e1e; color: #888; }
+    body.light .theme-pill { background: #e2e2de; color: #555; }
+
+    .tip-item { animation: tipIn 0.4s ease forwards; opacity:0; }
+    @keyframes tipIn { from { opacity:0; transform: translateX(-8px); } to { opacity:1; transform:none; } }
+
+    .swipe-hint { animation: hintFade 2.8s ease 0.6s forwards; opacity:0; pointer-events:none; }
+    @keyframes hintFade { 0%{opacity:0;} 20%{opacity:1;} 75%{opacity:1;} 100%{opacity:0;} }
+  </style>
+</head>
+<body class="dark">
+<div id="root"></div>
+<script>
+// ── Data ──────────────────────────────────────────────────────────
+const days = [
+  { day:"01", name:"MONDAY",    focus:"CARDIO + CORE",       tag:"Fat Furnace",
+    color:"#FF4D00", bgDark:"#1a0800", bgLight:"#fff5f0", duration:"60 min",
+    warmup:"5 min light jog on treadmill", cooldown:"5 min full body stretching",
+    exercises:[
+      {name:"Treadmill Intervals",  sets:"6 rounds",   reps:"1 min run / 90 sec walk", muscle:"Full Body",        tip:"Increase speed each round"},
+      {name:"Burpees",              sets:"3 × 12",     reps:"30 sec rest",             muscle:"Full Body",        tip:"Jump explosively"},
+      {name:"Mountain Climbers",    sets:"3 × 40 sec", reps:"20 sec rest",             muscle:"Core + Cardio",    tip:"Keep hips level"},
+      {name:"Jump Rope",            sets:"3 × 2 min",  reps:"1 min rest",              muscle:"Calves + Cardio",  tip:"Stay on toes"},
+      {name:"Plank Hold",           sets:"3 × 45 sec", reps:"30 sec rest",             muscle:"Core",             tip:"Squeeze glutes"},
+      {name:"Bicycle Crunches",     sets:"3 × 20",     reps:"30 sec rest",             muscle:"Abs + Obliques",   tip:"Slow & controlled"},
+    ],
+    akshay:"Start every morning with cardio before eating — this burns stored fat directly." },
+
+  { day:"02", name:"TUESDAY",   focus:"UPPER BODY PUSH",     tag:"Chest · Shoulder · Triceps",
+    color:"#FFB800", bgDark:"#1a1200", bgLight:"#fffbf0", duration:"60 min",
+    warmup:"5 min jump rope + arm circles", cooldown:"5 min chest & shoulder stretch",
+    exercises:[
+      {name:"Push-Ups (Wide Grip)",     sets:"4 × 20", reps:"30 sec rest", muscle:"Chest",               tip:"Full range of motion"},
+      {name:"Dumbbell Shoulder Press",  sets:"3 × 15", reps:"45 sec rest", muscle:"Shoulders",           tip:"Light weight, feel the burn"},
+      {name:"Incline Dumbbell Press",   sets:"3 × 15", reps:"45 sec rest", muscle:"Upper Chest",         tip:"No arching back"},
+      {name:"Lateral Raises",           sets:"3 × 20", reps:"30 sec rest", muscle:"Side Delts",          tip:"Slight forward lean"},
+      {name:"Tricep Dips (Bench)",      sets:"3 × 15", reps:"45 sec rest", muscle:"Triceps",             tip:"Keep elbows back"},
+      {name:"Diamond Push-Ups",         sets:"3 × 12", reps:"30 sec rest", muscle:"Triceps + Inner Chest",tip:"Go to failure"},
+    ],
+    akshay:"Use bodyweight and light dumbbells — definition, not size. High reps are your secret weapon." },
+
+  { day:"03", name:"WEDNESDAY", focus:"LEGS + HIIT",         tag:"Lower Body Shred",
+    color:"#00E5A0", bgDark:"#001a10", bgLight:"#f0fff9", duration:"60 min",
+    warmup:"5 min cycling (moderate pace)", cooldown:"5 min quad & hamstring stretch",
+    exercises:[
+      {name:"Bodyweight Squats",       sets:"4 × 20",     reps:"30 sec rest", muscle:"Quads + Glutes",    tip:"Knees track over toes"},
+      {name:"Walking Lunges",          sets:"3 × 16 steps",reps:"45 sec rest", muscle:"Legs + Balance",    tip:"Big stride, torso upright"},
+      {name:"Box Jumps / Step-Ups",    sets:"3 × 12",     reps:"45 sec rest", muscle:"Explosive Power",   tip:"Land softly"},
+      {name:"Wall Sit",                sets:"3 × 45 sec", reps:"30 sec rest", muscle:"Quads Burn",         tip:"90° angle, push through"},
+      {name:"Calf Raises (Smith/Body)",sets:"3 × 25",     reps:"30 sec rest", muscle:"Calves",             tip:"Full range, squeeze at top"},
+      {name:"HIIT: Squat Jumps",       sets:"4 × 30 sec", reps:"20 sec rest", muscle:"Fat Burn Finisher",  tip:"All out effort"},
+    ],
+    akshay:"Strong legs burn more calories 24/7 — even at rest. This day is the biggest calorie burner of the week." },
+
+  { day:"04", name:"THURSDAY",  focus:"UPPER BODY PULL",     tag:"Back · Biceps · Posture",
+    color:"#00C3FF", bgDark:"#00101a", bgLight:"#f0faff", duration:"60 min",
+    warmup:"5 min rowing machine or arm swings", cooldown:"5 min lat & bicep stretch",
+    exercises:[
+      {name:"Assisted Pull-Ups / Lat Pulldown",sets:"4 × 12",reps:"45 sec rest",muscle:"Back Width",         tip:"Pull elbows to hips"},
+      {name:"Dumbbell Bent-Over Rows",         sets:"3 × 15",reps:"45 sec rest",muscle:"Mid Back",            tip:"Squeeze at the top"},
+      {name:"Seated Cable Row",                sets:"3 × 15",reps:"45 sec rest",muscle:"Lower Back + Lats",   tip:"Chest up, not rounding"},
+      {name:"Face Pulls",                      sets:"3 × 20",reps:"30 sec rest",muscle:"Rear Delts + Posture",tip:"Elbows high"},
+      {name:"Dumbbell Bicep Curls",            sets:"3 × 15",reps:"30 sec rest",muscle:"Biceps",              tip:"No swinging"},
+      {name:"Hammer Curls",                    sets:"3 × 12",reps:"30 sec rest",muscle:"Forearms + Biceps",   tip:"Neutral grip"},
+    ],
+    akshay:"A strong back = better posture = you look leaner instantly. This is the most underrated day." },
+
+  { day:"05", name:"FRIDAY",    focus:"FULL BODY CIRCUIT",   tag:"Functional Fitness",
+    color:"#FF2D7A", bgDark:"#1a0010", bgLight:"#fff0f5", duration:"60 min",
+    warmup:"5 min dynamic stretching + skipping", cooldown:"5 min yoga flow",
+    exercises:[
+      {name:"Dumbbell Thrusters",        sets:"4 × 12",    reps:"45 sec rest", muscle:"Full Body",          tip:"Squat deep, press overhead"},
+      {name:"Renegade Rows",             sets:"3 × 10 each",reps:"45 sec rest",muscle:"Core + Back",         tip:"Stable plank base"},
+      {name:"Kettlebell/DB Swings",      sets:"3 × 15",    reps:"45 sec rest", muscle:"Glutes + Cardio",     tip:"Hip hinge, not squat"},
+      {name:"TRX / Ring Push-Ups",       sets:"3 × 12",    reps:"45 sec rest", muscle:"Chest + Stability",   tip:"Slow eccentric down"},
+      {name:"Farmer's Walk",             sets:"3 × 30m",   reps:"1 min rest",  muscle:"Full Body + Grip",    tip:"Heavy but controlled"},
+      {name:"Battle Ropes / Shadow Boxing",sets:"3 × 30 sec",reps:"30 sec rest",muscle:"Cardio Finisher",    tip:"Go all out"},
+    ],
+    akshay:"Train like a martial artist — full body, functional, athletic. This is your signature day." },
+
+  { day:"06", name:"SATURDAY",  focus:"CARDIO + ABS",        tag:"Lean & Shred",
+    color:"#A855F7", bgDark:"#100018", bgLight:"#faf0ff", duration:"60 min",
+    warmup:"5 min light cycling", cooldown:"5 min deep breathing + stretch",
+    exercises:[
+      {name:"Treadmill / Elliptical", sets:"1 session", reps:"25 min moderate pace", muscle:"Steady State Fat Burn",tip:"Stay in zone 2 (can hold conversation)"},
+      {name:"Hanging Leg Raises",     sets:"4 × 15",    reps:"30 sec rest",          muscle:"Lower Abs",           tip:"Control the swing"},
+      {name:"Cable Crunches",         sets:"3 × 20",    reps:"30 sec rest",          muscle:"Upper Abs",           tip:"Round the spine"},
+      {name:"Russian Twists",         sets:"3 × 20 (each)",reps:"30 sec rest",       muscle:"Obliques",            tip:"Feet off floor for harder version"},
+      {name:"Ab Wheel Rollouts",      sets:"3 × 10",    reps:"45 sec rest",          muscle:"Deep Core",           tip:"Hardest core move — go slow"},
+      {name:"Plank Variations",       sets:"3 × 40 sec",reps:"20 sec rest",          muscle:"Total Core",          tip:"Side plank both sides"},
+    ],
+    akshay:"Abs are made in the kitchen AND the gym. This day seals the week with a strong finish." },
+];
+
+const tips = [
+  "🥗 Eat high protein: eggs, chicken, paneer, dal — every meal",
+  "💧 Drink 3-4 litres of water daily",
+  "😴 Sleep 7-8 hours — fat burns during deep sleep",
+  "🚫 Avoid sugar, maida, fried snacks 6 days a week",
+  "🧘 Sunday = active rest: walk, stretch, swim",
+];
+
+// ── State ─────────────────────────────────────────────────────────
+let activeDay   = 0;
+let expandedEx  = null;
+let swipeUsed   = false;
+let isLight     = false;
+let isAnimating = false;
+
+// ── Theme token helper ────────────────────────────────────────────
+function th() {
+  return {
+    text:    isLight ? '#111'    : '#fff',
+    sub:     isLight ? '#444'    : '#888',
+    muted:   isLight ? '#888'    : '#555',
+    exBg:    isLight ? '#f7f7f4' : '#ffffff05',
+    exBord:  isLight ? '#e4e4e0' : '#ffffff08',
+    warmBg:  isLight ? '#efefec' : '#ffffff08',
+    warmTxt: isLight ? '#555'    : '#aaa',
+    warmLbl: isLight ? '#aaa'    : '#555',
+    tipsBg:  isLight ? '#eaeae7' : '#0f0f0f',
+    tipsBord:isLight ? '#ddddd9' : '#1a1a1a',
+    tipItem: isLight ? '#f2f2ef' : '#ffffff04',
+    tipText: isLight ? '#555'    : '#777',
+    dotInactive: isLight ? '#ccc' : '#222',
+    btnBg:   isLight ? '#e4e4e1' : '#111',
+    btnClr:  isLight ? '#777'    : '#444',
+    btnBord: isLight ? '#d8d8d4' : '#1e1e1e',
+  };
+}
+
+// ── Build panel HTML (does NOT wrap in .slide-panel) ──────────────
+function buildPanelHTML(dayIdx) {
+  const d  = days[dayIdx];
+  const T  = th();
+  const bg = isLight ? d.bgLight : d.bgDark;
+  return `
+    <div style="padding:20px 24px 4px; max-width:680px; margin:0 auto;">
+
+      <!-- Day card -->
+      <div style="background:${bg}; border-radius:20px; padding:24px;
+           border:1px solid ${d.color}44; margin-bottom:16px;
+           box-shadow:0 0 28px 4px ${d.color}${isLight?'10':'20'}, 0 0 60px 10px ${d.color}0a;">
+
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+          <div>
+            <div style="font-family:'DM Sans'; font-size:11px; color:${d.color}; letter-spacing:3px; text-transform:uppercase; margin-bottom:4px;">${d.name}</div>
+            <div style="font-size:clamp(22px,5vw,30px); font-weight:700; letter-spacing:1px; line-height:1.1; color:${T.text};">${d.focus}</div>
+            <div style="font-family:'DM Sans'; font-size:12px; color:${T.muted}; margin-top:4px;">${d.tag}</div>
+          </div>
+          <div><div style="background:${d.color}; color:#000; font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; letter-spacing:1px;">${d.duration}</div></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:20px;">
+          ${[["🔥 WARM-UP", d.warmup], ["❄️ COOL-DOWN", d.cooldown]].map(([lbl,val]) => `
+            <div style="background:${T.warmBg}; border-radius:10px; padding:10px 12px;">
+              <div style="font-family:'DM Sans'; font-size:9px; color:${T.warmLbl}; letter-spacing:2px; margin-bottom:3px;">${lbl}</div>
+              <div style="font-family:'DM Sans'; font-size:12px; color:${T.warmTxt};">${val}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <div style="margin-bottom:20px;">
+          <div style="font-family:'DM Sans'; font-size:10px; color:${T.muted}; letter-spacing:3px; text-transform:uppercase; margin-bottom:10px;">EXERCISES</div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            ${d.exercises.map((ex,i) => `
+              <div class="ex-card" onclick="toggleEx(${i})" style="
+                background:${expandedEx===i ? d.color+(isLight?'18':'15') : T.exBg};
+                border:1px solid ${expandedEx===i ? d.color+'40' : T.exBord};
+                border-radius:12px; padding:12px 14px;
+                box-shadow:${expandedEx===i ? `0 0 14px 2px ${d.color}33` : 'none'};">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:24px;height:24px;border-radius:6px;background:${d.color};color:#000;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">${i+1}</div>
+                    <div>
+                      <div style="font-size:14px;font-weight:600;letter-spacing:0.5px;color:${T.text};">${ex.name}</div>
+                      <div style="font-family:'DM Sans';font-size:11px;color:${T.muted};margin-top:1px;">${ex.muscle}</div>
+                    </div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div style="color:${d.color};font-size:13px;font-weight:600;">${ex.sets}</div>
+                    <div style="font-family:'DM Sans';font-size:10px;color:${T.muted};">${ex.reps}</div>
+                  </div>
+                </div>
+                ${expandedEx===i ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid ${d.color}20;font-family:'DM Sans';font-size:12px;color:${d.color};display:flex;align-items:center;gap:6px;"><span>💡</span><span>${ex.tip}</span></div>` : ''}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div style="background:${isLight ? d.color+'15' : '#ffffff05'}; border-left:3px solid ${d.color}; border-radius:0 10px 10px 0; padding:12px 14px; box-shadow:-2px 0 14px 0 ${d.color}33;">
+          <div style="font-family:'DM Sans';font-size:10px;color:${d.color};letter-spacing:2px;margin-bottom:4px;">PRO TIP</div>
+          <div style="font-family:'DM Sans';font-size:12px;color:${T.sub};line-height:1.6;">${d.akshay}</div>
+        </div>
+      </div>
+
+      <!-- Weekly tips -->
+      <div style="background:${T.tipsBg}; border-radius:20px; padding:20px 24px; border:1px solid ${T.tipsBord};">
+        <div style="font-size:16px;font-weight:700;letter-spacing:1px;margin-bottom:14px;color:${T.text};">
+          WEEKLY <span style="color:${d.color};">SUCCESS TIPS</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${tips.map((tip,i) => `
+            <div class="tip-item" style="font-family:'DM Sans';font-size:13px;color:${T.tipText};padding:8px 12px;background:${T.tipItem};border-radius:8px;animation-delay:${i*0.07}s;">${tip}</div>
+          `).join('')}
+        </div>
+        <div style="margin-top:16px;padding:12px 14px;background:${d.color}10;border-radius:10px;font-family:'DM Sans';font-size:12px;color:${T.muted};text-align:center;line-height:1.6;">
+          🗓️ <strong style="color:${isLight?'#333':'#aaa'};">Sunday = Rest Day</strong> — Walk 30 min, stretch, let your body recover & burn fat overnight
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── Render static shell (header + day-btns + dots, no animation) ──
+function renderShell() {
+  const d = days[activeDay];
+  const T = th();
+  document.getElementById('root').innerHTML = `
+    <div style="min-height:100vh;">
+
+      <!-- Header -->
+      <div style="padding:28px 24px 0; max-width:680px; margin:0 auto;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div id="hbar" style="width:32px;height:3px;background:${d.color};border-radius:2px;"></div>
+            <span style="font-family:'DM Sans';font-size:11px;letter-spacing:3px;color:${T.muted};text-transform:uppercase;">Beginner · Fat Loss · Lean Build</span>
+          </div>
+          <button class="theme-pill" onclick="toggleTheme()">
+            ${isLight ? '🌙 Dark' : '☀️ Light'}
+          </button>
+        </div>
+        <h1 style="font-size:clamp(32px,8vw,52px);font-weight:700;letter-spacing:2px;line-height:1;text-transform:uppercase;color:${T.text};">
+          6-DAY GYM<br/><span id="haccent" style="color:${d.color};">WORKOUT PLAN</span>
+        </h1>
+        <p style="font-family:'DM Sans';color:${T.muted};font-size:13px;margin-top:8px;">
+          Inspired by Akshay Kumar · 60 min/day · Fat burn + lean tone
+        </p>
+      </div>
+
+      <!-- Day buttons -->
+      <div style="padding:24px 24px 0; max-width:680px; margin:0 auto;">
+        <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:8px;" id="day-btns">
+          ${days.map((dd,i) => `
+            <button class="day-btn" onclick="selectDay(${i})" style="
+              background:${activeDay===i ? dd.color : T.btnBg};
+              color:${activeDay===i ? '#000' : T.btnClr};
+              padding:10px 4px; border-radius:10px; text-align:center;
+              border:${activeDay===i ? 'none' : `1px solid ${T.btnBord}`};
+              box-shadow:${activeDay===i ? `0 0 16px 4px ${dd.color}55,0 0 32px 6px ${dd.color}22` : 'none'};">
+              <div style="font-size:16px;font-weight:700;letter-spacing:1px;">${dd.day}</div>
+              <div style="font-family:'DM Sans';font-size:9px;margin-top:2px;font-weight:500;letter-spacing:0.5px;">${dd.name.slice(0,3)}</div>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Slide viewport -->
+      <div id="slide-viewport">
+        <div id="slide-current" class="slide-panel">${buildPanelHTML(activeDay)}</div>
+      </div>
+
+      <!-- Dots -->
+      <div id="dots" style="display:flex;justify-content:center;gap:6px;padding:10px 0 8px;">
+        ${days.map((dd,i) => `
+          <div class="dot" onclick="selectDay(${i})" style="
+            width:${i===activeDay?'24px':'6px'};
+            background:${i===activeDay ? dd.color : T.dotInactive};
+            box-shadow:${i===activeDay ? `0 0 10px 3px ${dd.color}99` : 'none'};
+          "></div>
+        `).join('')}
+      </div>
+
+      ${!swipeUsed ? `
+        <div class="swipe-hint" style="display:flex;align-items:center;justify-content:center;gap:8px;padding-bottom:20px;font-family:'DM Sans';font-size:11px;color:${isLight?'#bbb':'#333'};letter-spacing:1px;user-select:none;">
+          <span>←</span> SWIPE TO CHANGE DAY <span>→</span>
+        </div>` : `<div style="padding-bottom:20px;"></div>`}
+    </div>
+  `;
+}
+
+// ── Animate slide ─────────────────────────────────────────────────
+function animateToDay(newIdx, direction) {
+  if (isAnimating || newIdx === activeDay) return;
+  isAnimating = true;
+  swipeUsed   = true;
+
+  const viewport = document.getElementById('slide-viewport');
+  const current  = document.getElementById('slide-current');
+
+  // Freeze viewport height so it doesn't collapse during anim
+  viewport.style.height = current.offsetHeight + 'px';
+
+  // Build incoming panel
+  const incoming = document.createElement('div');
+  incoming.className = 'slide-panel';
+  incoming.id = 'slide-incoming';
+
+  activeDay  = newIdx;
+  expandedEx = null;
+  incoming.innerHTML = buildPanelHTML(activeDay);
+  viewport.appendChild(incoming);
+
+  // Trigger animations
+  current.classList.add(direction === 'left' ? 'panel-exit-left' : 'panel-exit-right');
+  incoming.classList.add(direction === 'left' ? 'panel-enter-left' : 'panel-enter-right');
+
+  // After anim: clean up, restore height, update chrome
+  incoming.addEventListener('animationend', () => {
+    current.remove();
+    incoming.id        = 'slide-current';
+    incoming.className = 'slide-panel';
+    viewport.style.height = '';        // let it flow naturally again
+    isAnimating = false;
+    updateChrome();
+  }, { once: true });
+}
+
+// ── Update header + dots + buttons without full re-render ─────────
+function updateChrome() {
+  const d  = days[activeDay];
+  const T  = th();
+
+  const hbar   = document.getElementById('hbar');
+  const haccent= document.getElementById('haccent');
+  if (hbar)    hbar.style.background = d.color;
+  if (haccent) haccent.style.color   = d.color;
+
+  // Dots
+  const dotEls = document.querySelectorAll('#dots .dot');
+  dotEls.forEach((el, i) => {
+    el.style.width      = i === activeDay ? '24px' : '6px';
+    el.style.background = i === activeDay ? days[i].color : T.dotInactive;
+    el.style.boxShadow  = i === activeDay ? `0 0 10px 3px ${days[i].color}99` : 'none';
+  });
+
+  // Day buttons
+  document.querySelectorAll('#day-btns .day-btn').forEach((btn, i) => {
+    const dd = days[i];
+    const active = i === activeDay;
+    btn.style.background = active ? dd.color : T.btnBg;
+    btn.style.color      = active ? '#000'   : T.btnClr;
+    btn.style.border     = active ? 'none'   : `1px solid ${T.btnBord}`;
+    btn.style.boxShadow  = active ? `0 0 16px 4px ${dd.color}55,0 0 32px 6px ${dd.color}22` : 'none';
+  });
+}
+
+// ── Controls ──────────────────────────────────────────────────────
+function selectDay(idx) {
+  if (idx === activeDay || isAnimating) return;
+  animateToDay(idx, idx > activeDay ? 'left' : 'right');
+}
+
+function toggleEx(idx) {
+  expandedEx = expandedEx === idx ? null : idx;
+  const cur = document.getElementById('slide-current');
+  if (cur) cur.innerHTML = buildPanelHTML(activeDay);
+}
+
+function toggleTheme() {
+  isLight = !isLight;
+  document.body.classList.toggle('dark',  !isLight);
+  document.body.classList.toggle('light',  isLight);
+  renderShell();
+}
+
+// ── Touch swipe ───────────────────────────────────────────────────
+let tx = 0, ty = 0;
+document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, {passive:true});
+document.addEventListener('touchend',   e => {
+  const dx = e.changedTouches[0].clientX - tx;
+  const dy = e.changedTouches[0].clientY - ty;
+  if (Math.abs(dx) < 44 || Math.abs(dy) > Math.abs(dx) * 0.85) return;
+  if (dx < 0 && activeDay < days.length - 1) animateToDay(activeDay + 1, 'left');
+  else if (dx > 0 && activeDay > 0)          animateToDay(activeDay - 1, 'right');
+}, {passive:true});
+
+// ── Keyboard ──────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key==='ArrowRight' && activeDay < days.length-1) animateToDay(activeDay+1,'left');
+  if (e.key==='ArrowLeft'  && activeDay > 0)             animateToDay(activeDay-1,'right');
+});
+
+// ── Boot ──────────────────────────────────────────────────────────
+renderShell();
+</script>
+</body>
+</html>
